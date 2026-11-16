@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="以 LLM Wiki 為知識來源，從零理解 Dijkstra 最短路徑演算法的互動式教學簡報。">
+<title>從零理解 Dijkstra｜圖論與最短路徑演算法</title>
+<style>
+:root{
+  --ink:#172338;--muted:#66758b;--paper:#f7f9fc;--line:#e2e8f0;--navy:#101827;
+  --blue:#3b82f6;--cyan:#38bdf8;--mint:#14b8a6;--amber:#f59e0b;--rose:#ef6574;
+  --soft-blue:#eaf2ff;--soft-mint:#e8f8f5;--soft-amber:#fff5df;--soft-rose:#fff0f1;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;background:#0b1220;color:var(--ink)}
+button,a{font:inherit}
+button{cursor:pointer}
+.app{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 18px 12px;gap:12px;background:radial-gradient(circle at 12% 8%,rgba(59,130,246,.14),transparent 28%),radial-gradient(circle at 88% 90%,rgba(20,184,166,.10),transparent 30%),#0b1220}
+/* Fullscreen applies to the whole deck, including the navigation and progress bar. */
+.app:fullscreen,.app:-webkit-full-screen{
+  width:100vw;height:100svh;min-height:100svh;overflow:hidden;
+  justify-content:center;padding:12px 18px;gap:10px;background:#0b1220;
+}
+.app:fullscreen .topbar,.app:fullscreen .controls,
+.app:-webkit-full-screen .topbar,.app:-webkit-full-screen .controls{
+  width:min(100%,calc((100svh - 130px)*16/9));flex:0 0 auto;
+}
+.app:fullscreen .stage,.app:-webkit-full-screen .stage{
+  width:min(100%,calc((100svh - 130px)*16/9));height:auto;
+  max-height:calc(100svh - 130px);aspect-ratio:16/9;flex:0 1 auto;
+}
+.app:fullscreen .controls,.app:-webkit-full-screen .controls{margin-top:0}
+.app:fullscreen::backdrop,.app:-webkit-full-screen::backdrop{background:#0b1220}
+.topbar{width:min(100%,calc((100svh - 120px)*16/9));display:flex;align-items:center;justify-content:space-between;color:#dbe5f4;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:0 2px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800}.brand-mark{width:27px;height:27px;border:1px solid rgba(148,190,255,.5);border-radius:9px;display:grid;place-items:center;color:#8ec5ff;font-size:11px;letter-spacing:0}.topmeta{color:#8493a9;font-size:11px}
+.stage{width:min(100%,calc((100svh - 122px)*16/9));aspect-ratio:16/9;max-height:calc(100svh - 122px);position:relative;background:var(--paper);border-radius:20px;overflow:hidden;box-shadow:0 26px 85px rgba(0,0,0,.42);}
+.slide{position:absolute;inset:0;display:none;padding:clamp(24px,3.2vw,48px) clamp(26px,4vw,58px);overflow:auto;background:var(--paper)}
+.slide.active{display:flex;flex-direction:column;animation:fadein .22s ease-out}
+@keyframes fadein{from{opacity:.3;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.slide.dark{background:linear-gradient(135deg,#101827 0%,#172b46 65%,#153b4d 100%);color:#eef5ff}
+.slide.dark:before{content:"";position:absolute;width:380px;height:380px;border:1px solid rgba(148,197,255,.14);border-radius:50%;right:-140px;top:-190px;box-shadow:0 0 0 36px rgba(148,197,255,.035),0 0 0 76px rgba(148,197,255,.025)}
+.slide.dark:after{content:"";position:absolute;width:260px;height:260px;border:1px solid rgba(45,212,191,.16);border-radius:50%;left:-160px;bottom:0;box-shadow:0 0 0 34px rgba(45,212,191,.025)}
+.slide-content{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100%;gap:clamp(12px,1.8vw,22px)}
+.eyebrow{font-size:clamp(10px,.9vw,13px);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#4777b8;display:flex;align-items:center;gap:9px}
+.eyebrow:before{content:"";width:23px;height:2px;background:var(--mint);border-radius:2px}
+.dark .eyebrow{color:#91c7ff}
+h1,h2,h3,p{margin:0}
+h1{font-size:clamp(34px,4.5vw,64px);line-height:1.12;letter-spacing:-.04em;font-weight:850}
+h2{font-size:clamp(25px,2.65vw,39px);line-height:1.16;letter-spacing:-.035em;font-weight:820;color:#172338}
+.dark h2{color:#f4f8ff}
+h3{font-size:clamp(15px,1.5vw,21px);line-height:1.25;font-weight:800;color:#23344d}
+.dark h3{color:#edf5ff}
+p,.body{font-size:clamp(13px,1.25vw,17px);line-height:1.58;color:#506078}
+.dark p,.dark .body{color:#c4d2e4}
+.lead{font-size:clamp(16px,1.55vw,22px);line-height:1.55;color:#52657f;max-width:900px}
+.dark .lead{color:#d1deed}
+.kicker{font-size:11px;font-weight:800;letter-spacing:.1em;color:#71839c;text-transform:uppercase}
+.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
+.slide-no{font-weight:800;font-size:12px;color:#9aa9bc;letter-spacing:.12em}
+.grid{display:grid;gap:14px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:clamp(13px,1.45vw,20px);box-shadow:0 4px 16px rgba(30,53,82,.035);min-width:0}
+.card.tint-blue{background:var(--soft-blue);border-color:#d6e5ff}.card.tint-mint{background:var(--soft-mint);border-color:#cdeee8}.card.tint-amber{background:var(--soft-amber);border-color:#f4e4bb}.card.tint-rose{background:var(--soft-rose);border-color:#f8d9dd}
+.card p{font-size:clamp(12px,1.08vw,15px);line-height:1.5}.card h3{margin-bottom:8px}
+.card .big{font-size:clamp(24px,2.7vw,38px);font-weight:850;letter-spacing:-.04em;color:#18395f}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:800;letter-spacing:.01em;background:#eaf2ff;color:#285c9d;white-space:nowrap}
+.pill.mint{background:#dff6f1;color:#087e70}.pill.amber{background:#fff0ca;color:#9a6100}.pill.rose{background:#ffe2e5;color:#ad3b4d}.pill.darkpill{background:rgba(148,197,255,.14);color:#b7d8ff;border:1px solid rgba(148,197,255,.25)}
+.callout{border-left:4px solid var(--mint);padding:10px 15px;background:#edf9f7;border-radius:0 11px 11px 0;color:#335d60;font-size:clamp(12px,1.1vw,15px);line-height:1.5}
+.complexity-note{margin-top:14px;padding:11px 13px;border-left:4px solid var(--mint);border-radius:0 10px 10px 0;background:#edf9f7;color:#335d60;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.dark .callout{background:rgba(20,184,166,.12);color:#c9f4ee;border-color:#2dd4bf}
+.formula{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#13243a;color:#f3f8ff;border-radius:12px;padding:13px 16px;font-size:clamp(14px,1.55vw,21px);font-weight:700;letter-spacing:.01em;display:inline-block;max-width:100%;overflow-wrap:anywhere}
+.formula.light{background:#eef4fb;color:#17406e;border:1px solid #dce8f5}
+.muted{color:#8695a9}.small{font-size:clamp(10px,.9vw,12px);line-height:1.5;color:#78879a}
+.dark .small{color:#9eafc4}
+ul.clean{margin:0;padding:0;list-style:none;display:grid;gap:9px}ul.clean li{display:flex;gap:9px;align-items:flex-start;color:#4e6078;font-size:clamp(12px,1.1vw,15px);line-height:1.45}ul.clean li:before{content:"";width:7px;height:7px;margin-top:6px;flex:none;border-radius:50%;background:#22b8a8}
+.dark ul.clean li{color:#ccdaea}
+.step-list{display:grid;gap:10px}.step{display:grid;grid-template-columns:30px 1fr;gap:11px;align-items:start}.step .num{width:29px;height:29px;display:grid;place-items:center;border-radius:9px;background:#e7f1ff;color:#2866a9;font-weight:900;font-size:13px}.step p{font-size:clamp(12px,1.08vw,15px)}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:clamp(11px,1vw,14px);overflow:hidden;border:1px solid var(--line);border-radius:12px;background:#fff}th,td{padding:9px 11px;text-align:left;border-bottom:1px solid #e9eef4;vertical-align:top}th{background:#edf3fa;color:#344b68;font-weight:800}td{color:#506078}tr:last-child td{border-bottom:0}
+.table-compact th,.table-compact td{padding:7px 9px}
+.tagline{display:flex;gap:8px;flex-wrap:wrap}
+.footer-source{margin-top:auto;padding-top:8px;border-top:1px solid rgba(132,151,177,.22);font-size:10px;color:#8897aa;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.footer-source a{color:#477eb9;text-decoration:none}.footer-source a:hover{text-decoration:underline}.dark .footer-source{border-color:rgba(167,193,222,.18);color:#97a9bf}.dark .footer-source a{color:#9bcfff}
+.hero-layout{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:24px;flex:1}.hero-label{font-size:12px;color:#a8c9eb;font-weight:800;letter-spacing:.16em;text-transform:uppercase;margin-bottom:16px}.hero-title span{color:#65d6ca}.hero-sub{margin-top:20px;max-width:520px}.hero-meta{display:flex;gap:9px;flex-wrap:wrap;margin-top:25px}.hero-art{width:100%;max-height:360px;filter:drop-shadow(0 20px 35px rgba(0,0,0,.16))}.hero-layout>.footer-source{grid-column:1/-1;width:100%}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;min-height:0}.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.graph-wrap{background:#f0f5fa;border:1px solid #dbe5ef;border-radius:15px;padding:10px;min-width:0}.graph-wrap svg{width:100%;height:auto;display:block}.graph-edge{stroke:#9aabc0;stroke-width:3;stroke-linecap:round}.graph-edge.active{stroke:#16a89a;stroke-width:5}.graph-edge.path{stroke:#2878cf;stroke-width:5}.edge-label{font-size:13px;font-weight:800;fill:#43566f}.edge-pill{fill:white;stroke:#d6e0ea;stroke-width:1}.graph-node{fill:#fff;stroke:#9aabc0;stroke-width:2.5}.graph-node.settled{fill:#dff6f1;stroke:#13a38f;stroke-width:3}.graph-node.current{fill:#fff0c9;stroke:#e3a32a;stroke-width:4}.graph-node.pathnode{fill:#e3efff;stroke:#367dd0;stroke-width:3}.node-label{font-size:17px;font-weight:900;fill:#1f3856;text-anchor:middle;dominant-baseline:central}.distance-label{font-size:10px;font-weight:800;fill:#516781;text-anchor:middle}
+.walk-layout{display:grid;grid-template-columns:1.45fr .9fr;gap:16px;min-height:0}.walk-side{display:flex;flex-direction:column;gap:10px}.dist-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.dist-cell{background:#f1f5fa;border:1px solid #e1e8f0;border-radius:9px;padding:7px 8px;text-align:center}.dist-cell b{display:block;font-size:16px;color:#203c5d}.dist-cell span{font-size:10px;color:#75869c}.dist-cell.settled{background:#e5f7f2;border-color:#bfe9df}.dist-cell.current{background:#fff4d8;border-color:#eed18c}.step-controls{display:flex;gap:8px}.step-controls button{border:1px solid #d5e0eb;border-radius:9px;background:white;color:#244261;padding:8px 11px;font-weight:800;font-size:12px}.step-controls button:disabled{opacity:.35;cursor:not-allowed}.step-controls button.primary{background:#173b60;border-color:#173b60;color:white}.flow-arrow{font-size:18px;color:#8fa0b4;text-align:center}
+.source-list{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.source-item{background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}.source-id{font-weight:900;color:#2e72b8;font-size:12px}.source-item b{display:block;font-size:12px;color:#273e5a}.source-item a{font-size:10px;color:#477eb9;text-decoration:none;overflow-wrap:anywhere}.source-item span{font-size:10px;color:#7e8da1}
+.quiz-options{display:grid;gap:8px}.quiz-options button{border:1px solid #dce5ee;background:white;text-align:left;padding:11px 13px;border-radius:10px;color:#334a66;font-size:13px;font-weight:700}.quiz-options button:hover{border-color:#6ea1db;background:#f4f8ff}.quiz-options button.correct{border-color:#36b7a5;background:#e7f8f4;color:#087d70}.quiz-options button.wrong{border-color:#e78b98;background:#fff0f1;color:#a73b4b}.quiz-feedback{min-height:25px;font-size:12px;color:#63748a;line-height:1.45}
+.controls{width:min(100%,calc((100svh - 122px)*16/9));display:flex;align-items:center;gap:12px;color:#b9c5d5}.controls button{border:1px solid #304158;border-radius:10px;background:#142238;color:#e8f0fa;padding:9px 13px;font-size:12px;font-weight:800;display:flex;align-items:center;gap:7px}.controls button:hover{background:#203653;border-color:#54718f}.controls button:disabled{opacity:.35;cursor:not-allowed}.progress{height:5px;background:#26354a;border-radius:99px;overflow:hidden;flex:1}.progress>span{display:block;height:100%;background:linear-gradient(90deg,#3b82f6,#2dd4bf);width:0;transition:width .2s}.counter{font-size:12px;font-variant-numeric:tabular-nums;color:#b8c5d6;min-width:56px;text-align:center}.key-hint{font-size:10px;color:#708198;white-space:nowrap}
+@media(max-width:850px){
+ .app{padding:8px;gap:8px}.topbar,.controls{width:100%}.stage{width:100%;height:calc(100svh - 102px);max-height:none;aspect-ratio:auto;border-radius:14px}.slide{padding:22px 20px}.grid.four{grid-template-columns:repeat(2,1fr)}.grid.three{grid-template-columns:1fr 1fr}.hero-layout{grid-template-columns:1fr}.hero-art{max-height:210px;max-width:440px;margin:0 auto}.hero-title{font-size:42px}.walk-layout{grid-template-columns:1fr}.graph-wrap svg{max-height:250px}.key-hint{display:none}.controls button{padding:9px 10px}.footer-source{font-size:9px}
+}
+@media(max-width:560px){.grid.two,.grid.three,.two-col,.three-col{grid-template-columns:1fr}.grid.four{grid-template-columns:1fr 1fr}.source-list{grid-template-columns:1fr}.title-row{align-items:flex-start}.slide-no{display:none}.hero-title{font-size:37px}h2{font-size:26px}.topmeta{display:none}.stage{height:calc(100svh - 94px)}.slide{padding:20px 17px}.app{padding:6px}.controls{gap:7px}.controls button .btnlabel{display:none}.counter{min-width:47px}}
+@media (min-width:851px) and (max-height:820px){
+  .slide[data-title="還原最短路徑"] .slide-content,
+  .slide[data-title="Priority Queue 與效率"] .slide-content{gap:clamp(8px,1.15vh,14px)}
+  .slide[data-title="還原最短路徑"],
+  .slide[data-title="Priority Queue 與效率"]{padding:clamp(18px,2.5vh,28px) clamp(24px,3.2vw,44px)}
+  .slide[data-title="還原最短路徑"] .lead,
+  .slide[data-title="Priority Queue 與效率"] .lead{font-size:clamp(13px,1.05vw,15px);line-height:1.42}
+  .slide[data-title="Priority Queue 與效率"] .card{padding:clamp(10px,1vw,14px)}
+  .slide[data-title="Priority Queue 與效率"] .two-col{gap:12px}
+  .slide[data-title="Priority Queue 與效率"] table th,
+  .slide[data-title="Priority Queue 與效率"] table td{padding:6px 8px}
+}
+@media (max-width:850px){
+  .app:fullscreen,.app:-webkit-full-screen{width:100vw;height:100svh;min-height:100svh;padding:8px;gap:8px;overflow:hidden}
+  .app:fullscreen .topbar,.app:fullscreen .controls,
+  .app:-webkit-full-screen .topbar,.app:-webkit-full-screen .controls{width:100%}
+  .app:fullscreen .stage,.app:-webkit-full-screen .stage,
+  .app:-webkit-full-screen .stage{width:100%;height:calc(100svh - 104px);max-height:none;aspect-ratio:auto;flex:0 1 auto}
+}
+
+/* Slide 11 responsive fix: keep the complexity note after both cards instead of
+   allowing the flexing two-column grid to shrink underneath it on narrow/short screens. */
+@media (max-width:700px), (max-height:680px){
+  .slide[data-title="Priority Queue 與效率"] .slide-content{
+    min-height:max-content;
+    gap:14px;
+  }
+  .slide[data-title="Priority Queue 與效率"] .two-col{
+    flex:0 0 auto !important;
+    min-height:max-content;
+    grid-template-columns:minmax(0,1fr);
+    gap:12px;
+    align-content:start;
+  }
+  .slide[data-title="Priority Queue 與效率"] .two-col > .card{
+    min-width:0;
+  }
+  .slide[data-title="Priority Queue 與效率"] .complexity-note{
+    flex:0 0 auto;
+    margin-top:12px;
+    padding:9px 11px;
+    font-size:12px;
+    line-height:1.45;
+    overflow-wrap:anywhere;
+  }
+  .slide[data-title="Priority Queue 與效率"] .footer-source{
+    flex:0 0 auto;
+    margin-top:4px;
+  }
+}
+
+
+/* Slide 11: content-first layout. Keep the analysis note inside the right card so it
+   cannot collide with the card row or the source footer at any viewport height. */
+.slide[data-title="Priority Queue 與效率"] .slide-content{gap:12px}
+.slide[data-title="Priority Queue 與效率"] .two-col{flex:0 0 auto;min-height:unset;align-items:stretch}
+.slide[data-title="Priority Queue 與效率"] .two-col > .card{min-width:0;min-height:0}
+.slide[data-title="Priority Queue 與效率"] .complexity-note{position:static;clear:both}
+
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">G/W</span><span>GRAPH THEORY · LEARNING DECK</span></div>
+    <div class="topmeta">知識來源：Graph & Shortest Path LLM Wiki</div>
+    <div id="topCounter">01 / 14</div>
+  </header>
+
+  <main class="stage" id="deck" aria-label="Dijkstra 教學簡報">
+    <!-- 01 Cover -->
+    <section class="slide dark active" data-title="封面">
+      <div class="slide-content hero-layout">
+        <div>
+          <div class="hero-label">A BEGINNER'S GUIDE TO SHORTEST PATHS</div>
+          <h1 class="hero-title">從零理解<br><span>Dijkstra</span></h1>
+          <p class="lead hero-sub">給定一張加權圖，如何從起點出發，找到到其他節點的最低成本路徑？</p>
+          <div class="hero-meta">
+            <span class="pill darkpill">圖論入門</span><span class="pill darkpill">單源最短路徑</span><span class="pill darkpill">互動式範例</span>
+          </div>
+          <p class="small" style="margin-top:28px">本簡報以已完成的「圖論與最短路徑演算法」LLM Wiki 為知識來源。</p>
+        </div>
+        <div>
+          <svg class="hero-art" viewBox="0 0 520 390" role="img" aria-label="由節點與連線構成的加權圖示意">
+            <defs><linearGradient id="heroLine" x1="0" x2="1"><stop stop-color="#4d9aff"/><stop offset="1" stop-color="#43d6c4"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+            <g stroke="#66809e" stroke-width="3" opacity=".55" fill="none"><path d="M80 190L190 82L320 120L430 65M80 190L190 300L320 260L430 320M190 82L190 300M190 82L320 260M320 120L320 260M320 120L430 320"/></g>
+            <g stroke="url(#heroLine)" stroke-width="5" fill="none" filter="url(#glow)" stroke-linecap="round"><path d="M80 190L190 82L320 120L430 320"/></g>
+            <g fill="#162b43" stroke="#79b9ff" stroke-width="3"><circle cx="80" cy="190" r="25"/><circle cx="190" cy="82" r="25"/><circle cx="190" cy="300" r="25"/><circle cx="320" cy="120" r="25"/><circle cx="320" cy="260" r="25"/><circle cx="430" cy="320" r="25"/></g>
+            <g fill="#eaf5ff" font-size="17" font-weight="800" text-anchor="middle" dominant-baseline="central"><text x="80" y="190">A</text><text x="190" y="82">B</text><text x="190" y="300">C</text><text x="320" y="120">D</text><text x="320" y="260">E</text><text x="430" y="320">F</text></g>
+            <g fill="#a7c9ed" font-size="12" font-weight="700"><text x="125" y="120">4</text><text x="128" y="255">2</text><text x="252" y="92">5</text><text x="380" y="204">3</text></g>
+          </svg>
+        </div>
+        <div class="footer-source"><span>建議：使用 ← → 方向鍵或下方按鈕瀏覽</span><span>01 · INTRODUCTION</span></div>
+      </div>
+    </section>
+
+    <!-- 02 Learning path -->
+    <section class="slide" data-title="今天會學到什麼">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">01 / LEARNING GOALS</div><h2>今天會學到什麼？</h2></div><div class="slide-no">02 / 14</div></div>
+        <p class="lead">先理解「圖」與「成本」，再看 Dijkstra 如何一步步更新距離，最後判斷什麼情況應該改用其他演算法。</p>
+        <div class="grid three" style="margin-top:8px">
+          <div class="card tint-blue"><div class="big">01</div><h3>看懂問題</h3><p>認識頂點、邊、權重，以及什麼叫做最短路徑。</p></div>
+          <div class="card tint-mint"><div class="big">02</div><h3>理解 Dijkstra</h3><p>掌握非負權重、貪婪選擇、距離鬆弛與優先佇列。</p></div>
+          <div class="card tint-amber"><div class="big">03</div><h3>選對方法</h3><p>分辨 BFS、Dijkstra、Bellman-Ford 的適用情境。</p></div>
+        </div>
+        <div class="card" style="margin-top:auto">
+          <div class="kicker">LEARNING ROUTE</div>
+          <div class="tagline" style="margin-top:10px;align-items:center">
+            <span class="pill">Graph</span><span class="muted">→</span><span class="pill">Shortest Path</span><span class="muted">→</span><span class="pill mint">Dijkstra</span><span class="muted">→</span><span class="pill">Relaxation</span><span class="muted">→</span><span class="pill">Priority Queue</span><span class="muted">→</span><span class="pill amber">Comparison</span>
+          </div>
+        </div>
+        <div class="footer-source"><span>知識依據：Wiki 01 Overview</span><span>LEARNING MAP</span></div>
+      </div>
+    </section>
+
+    <!-- 03 Graph basics -->
+    <section class="slide" data-title="先認識 Graph">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">02 / GRAPH BASICS</div><h2>先認識 Graph：節點與連線</h2></div><div class="slide-no">03 / 14</div></div>
+        <p class="lead">Graph（圖）用來描述物件之間的連結關係，由頂點集合與邊集合組成。</p>
+        <div class="two-col" style="flex:1;align-items:center">
+          <div class="graph-wrap">
+            <svg viewBox="0 0 520 300" role="img" aria-label="簡單無向圖，四個節點與四條邊">
+              <g stroke="#91a4ba" stroke-width="4" stroke-linecap="round"><path d="M110 80L260 80L400 205L170 220L110 80"/></g>
+              <g fill="#fff" stroke="#4b8bd1" stroke-width="3"><circle cx="110" cy="80" r="27"/><circle cx="260" cy="80" r="27"/><circle cx="400" cy="205" r="27"/><circle cx="170" cy="220" r="27"/></g>
+              <g fill="#23466d" font-size="19" font-weight="900" text-anchor="middle" dominant-baseline="central"><text x="110" y="80">A</text><text x="260" y="80">B</text><text x="400" y="205">C</text><text x="170" y="220">D</text></g>
+              <g fill="#6c7e94" font-size="13" font-weight="700"><text x="183" y="57">Edge</text><text x="323" y="129">Edge</text></g>
+            </svg>
+            <div class="tagline"><span class="pill">Vertex = 頂點</span><span class="pill mint">Edge = 邊</span><span class="pill amber">Neighbor = 鄰點</span></div>
+          </div>
+          <div class="step-list">
+            <div class="step"><span class="num">1</span><div><h3>Vertex（頂點）</h3><p>代表一個物件，例如城市、路口或使用者。</p></div></div>
+            <div class="step"><span class="num">2</span><div><h3>Edge（邊）</h3><p>代表兩個頂點之間存在連結。</p></div></div>
+            <div class="step"><span class="num">3</span><div><h3>Directed / Undirected</h3><p>有向邊只能依箭頭前進；無向邊可雙向通行。</p></div></div>
+          </div>
+        </div>
+        <div class="callout">可以把城市想成 Vertex，把道路想成 Edge。只要把連接關係畫出來，就能形成一張 Graph。</div>
+        <div class="footer-source"><span>知識依據：Wiki 02 Graph & Weighted Graph</span><span>R1 · CORNELL CS 2110</span></div>
+      </div>
+    </section>
+
+    <!-- 04 Weighted graph shortest path -->
+    <section class="slide" data-title="什麼是最短路徑">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">03 / SHORTEST PATH</div><h2>「最短」不一定代表邊數最少</h2></div><div class="slide-no">04 / 14</div></div>
+        <p class="lead">Weighted Graph（加權圖）的每條邊有成本。最短路徑要比較的是<strong>路徑總權重</strong>，而不只是經過幾條邊。</p>
+        <div class="grid two" style="flex:1">
+          <div class="card">
+            <span class="pill">路線 A</span><h3 style="margin-top:10px">經過 3 條邊</h3>
+            <div class="tagline" style="margin:14px 0;align-items:center"><span class="pill">A</span><span>→</span><span class="pill">B</span><span>→</span><span class="pill">D</span><span>→</span><span class="pill">F</span></div>
+            <div class="formula light">4 + 10 + 11 = 25</div>
+            <p style="margin-top:12px">邊數比較少，但總成本較高。</p>
+          </div>
+          <div class="card tint-mint">
+            <span class="pill mint">路線 B</span><h3 style="margin-top:10px">經過 4 條邊</h3>
+            <div class="tagline" style="margin:14px 0;align-items:center"><span class="pill">A</span><span>→</span><span class="pill">C</span><span>→</span><span class="pill">E</span><span>→</span><span class="pill">D</span><span>→</span><span class="pill">F</span></div>
+            <div class="formula light">2 + 3 + 4 + 11 = 20</div>
+            <p style="margin-top:12px">邊數更多，但總成本更低。</p>
+          </div>
+        </div>
+        <div class="callout"><strong>最短路徑的核心：</strong>先定義要最小化的成本，再比較所有符合連線方向的可行路徑。</div>
+        <div class="footer-source"><span>知識依據：Wiki 03 Shortest Path Problem</span><span>R1、R2 · NETWORKX</span></div>
+      </div>
+    </section>
+
+    <!-- 05 choose algorithm -->
+    <section class="slide" data-title="如何選擇演算法">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">04 / ALGORITHM SELECTION</div><h2>先看邊的權重，再選演算法</h2></div><div class="slide-no">05 / 14</div></div>
+        <p class="lead">BFS、Dijkstra、Bellman-Ford 都能處理單源最短路徑的不同情境，但適用條件不同。</p>
+        <div class="grid three" style="flex:1">
+          <div class="card tint-blue">
+            <span class="pill">非加權／等成本邊</span><h3 style="margin-top:12px">BFS</h3>
+            <p>用 FIFO Queue 逐層探索，找出經過邊數最少的路徑。</p>
+            <div class="formula light" style="margin-top:15px">O(V + E)</div>
+            <p class="small" style="margin-top:10px">鄰接串列實作</p>
+          </div>
+          <div class="card tint-mint">
+            <span class="pill mint">所有權重 ≥ 0</span><h3 style="margin-top:12px">Dijkstra</h3>
+            <p>每輪確定目前暫定距離最小的頂點，並更新鄰點。</p>
+            <div class="formula light" style="margin-top:15px">O((V+E) log V)</div>
+            <p class="small" style="margin-top:10px">鄰接串列 + Binary Min Heap</p>
+          </div>
+          <div class="card tint-amber">
+            <span class="pill amber">允許負權重邊</span><h3 style="margin-top:12px">Bellman-Ford</h3>
+            <p>反覆掃描所有邊並鬆弛，額外檢查來源點可達的負環。</p>
+            <div class="formula light" style="margin-top:15px">O(VE)</div>
+            <p class="small" style="margin-top:10px">最多 V−1 輪邊掃描</p>
+          </div>
+        </div>
+        <div class="callout">本簡報的主角是 Dijkstra：適用於邊權重全部非負（可以是 0）的加權圖。</div>
+        <div class="footer-source"><span>知識依據：Wiki 03、07、10</span><span>R2、R3、R5</span></div>
+      </div>
+    </section>
+
+    <!-- 06 Dijkstra concept -->
+    <section class="slide dark" data-title="Dijkstra 的核心想法">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">05 / DIJKSTRA'S IDEA</div><h2>Dijkstra：每次先確定最近的候選點</h2></div><div class="slide-no">06 / 14</div></div>
+        <p class="lead">從來源點出發，反覆挑出目前距離最小、但還沒確定最短距離的頂點。</p>
+        <div class="grid three" style="flex:1;align-items:stretch">
+          <div class="card" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14)"><span class="pill darkpill">01 · 選擇</span><h3 style="margin-top:12px">Greedy Strategy</h3><p>從 Frontier 中選出 `dist` 最小的頂點。</p></div>
+          <div class="card" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14)"><span class="pill darkpill">02 · 確定</span><h3 style="margin-top:12px">Settled</h3><p>將該頂點標記為已確定；它的最短距離不再改變。</p></div>
+          <div class="card" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14)"><span class="pill darkpill">03 · 更新</span><h3 style="margin-top:12px">Relaxation</h3><p>檢查外連邊，找到更短候選時更新距離與前驅。</p></div>
+        </div>
+        <div class="callout"><strong>為什麼可以放心確定？</strong>因為所有邊權重皆非負，後續路徑再增加邊，不會讓總成本下降。這是 Dijkstra 正確性的重要依據。</div>
+        <div class="tagline"><span class="pill darkpill">Undiscovered：尚未發現</span><span class="pill darkpill">Frontier：候選中</span><span class="pill mint">Settled：距離已確定</span></div>
+        <div class="footer-source"><span>知識依據：Wiki 04 Dijkstra Algorithm</span><span>R3 · CORNELL CS 2110</span></div>
+      </div>
+    </section>
+
+    <!-- 07 Data -->
+    <section class="slide" data-title="Dijkstra 記錄哪些資訊">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">06 / ALGORITHM STATE</div><h2>Dijkstra 會記錄哪些資訊？</h2></div><div class="slide-no">07 / 14</div></div>
+        <p class="lead">演算法需要記住「目前距離多少」、「路徑從哪裡來」，以及「哪些頂點已經確定」。</p>
+        <div class="grid two" style="flex:1">
+          <div class="card tint-blue"><h3><code>dist[v]</code>｜距離估計</h3><p>目前找到的來源點到 v 的最佳候選距離。還沒找到路徑時是 ∞。</p></div>
+          <div class="card tint-mint"><h3><code>prev[v]</code>｜前驅頂點</h3><p>記錄目前最佳路徑中，v 的前一個頂點；最後可用來還原路徑。</p></div>
+          <div class="card tint-amber"><h3><code>settled</code>｜已確定集合</h3><p>存放最短距離已確定的頂點，之後不再更新它們。</p></div>
+          <div class="card"><h3><code>PQ</code>｜最小優先佇列</h3><p>依暫定距離由小到大取出 Frontier 頂點，快速選下一個處理對象。</p></div>
+        </div>
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+          <div><div class="kicker">INITIALIZATION</div><p style="margin-top:5px">起點距離設為 0；其他頂點先設為無限大。</p></div>
+          <div class="formula">dist[s] = 0&nbsp; | &nbsp;dist[v ≠ s] = ∞</div>
+        </div>
+        <div class="footer-source"><span>知識依據：Wiki 04 Dijkstra Algorithm</span><span>R3</span></div>
+      </div>
+    </section>
+
+    <!-- 08 interactive walkthrough -->
+    <section class="slide" data-title="互動：逐輪執行 Dijkstra">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">07 / INTERACTIVE WALKTHROUGH</div><h2>一起跑一次 Dijkstra</h2></div><div class="slide-no">08 / 14</div></div>
+        <p class="small">從 A 出發。圖中的邊視為雙向、權重非負。按「下一輪」觀察頂點確定與距離更新。</p>
+        <div class="walk-layout" style="flex:1">
+          <div class="graph-wrap">
+            <svg id="walkGraph" viewBox="0 0 720 320" role="img" aria-label="Dijkstra A 到 F 加權圖互動範例">
+              <g id="edges">
+                <line id="e-AB" class="graph-edge" x1="80" y1="160" x2="260" y2="70"/><line id="e-AC" class="graph-edge" x1="80" y1="160" x2="260" y2="250"/><line id="e-CB" class="graph-edge" x1="260" y1="250" x2="260" y2="70"/><line id="e-BD" class="graph-edge" x1="260" y1="70" x2="470" y2="70"/><line id="e-CD" class="graph-edge" x1="260" y1="250" x2="470" y2="70"/><line id="e-CE" class="graph-edge" x1="260" y1="250" x2="470" y2="250"/><line id="e-DE" class="graph-edge" x1="470" y1="70" x2="470" y2="250"/><line id="e-DF" class="graph-edge" x1="470" y1="70" x2="660" y2="160"/><line id="e-EF" class="graph-edge" x1="470" y1="250" x2="660" y2="160"/>
+              </g>
+              <g>
+                <g transform="translate(154 105)"><rect class="edge-pill" x="-13" y="-13" width="26" height="22" rx="7"/><text class="edge-label" y="3" text-anchor="middle">4</text></g>
+                <g transform="translate(154 215)"><rect class="edge-pill" x="-13" y="-13" width="26" height="22" rx="7"/><text class="edge-label" y="3" text-anchor="middle">2</text></g>
+                <g transform="translate(282 160)"><rect class="edge-pill" x="-13" y="-13" width="26" height="22" rx="7"/><text class="edge-label" y="3" text-anchor="middle">1</text></g>
+                <g transform="translate(365 52)"><rect class="edge-pill" x="-13" y="-13" width="26" height="22" rx="7"/><text class="edge-label" y="3" text-anchor="middle">5</text></g>
+                <g transform="translate(385 153)"><rect class="edge-pill" x="-13" y="-13" width="26" height="22" rx="7"/><text class="edge-label" y="3" text-anchor="middle">8</text></g>
+                <g transform="translate(365 238)"><rect class="edge-pill" x="-17" y="-13" width="34" height="22" rx="7"/><text class="edge-label" y="3" text-anchor="middle">10</text></g>
+                <g transform="translate(490 160)"><rect class="edge-pill" x="-13" y="-13" width="26" height="22" rx="7"/><text class="edge-label" y="3" text-anchor="middle">2</text></g>
+                <g transform="translate(568 103)"><rect class="edge-pill" x="-13" y="-13" width="26" height="22" rx="7"/><text class="edge-label" y="3" text-anchor="middle">6</text></g>
+                <g transform="translate(568 226)"><rect class="edge-pill" x="-13" y="-13" width="26" height="22" rx="7"/><text class="edge-label" y="3" text-anchor="middle">3</text></g>
+              </g>
+              <g id="nodes">
+                <g id="n-A"><circle class="graph-node" cx="80" cy="160" r="24"/><text class="node-label" x="80" y="160">A</text></g>
+                <g id="n-B"><circle class="graph-node" cx="260" cy="70" r="24"/><text class="node-label" x="260" y="70">B</text></g>
+                <g id="n-C"><circle class="graph-node" cx="260" cy="250" r="24"/><text class="node-label" x="260" y="250">C</text></g>
+                <g id="n-D"><circle class="graph-node" cx="470" cy="70" r="24"/><text class="node-label" x="470" y="70">D</text></g>
+                <g id="n-E"><circle class="graph-node" cx="470" cy="250" r="24"/><text class="node-label" x="470" y="250">E</text></g>
+                <g id="n-F"><circle class="graph-node" cx="660" cy="160" r="24"/><text class="node-label" x="660" y="160">F</text></g>
+              </g>
+            </svg>
+            <div class="tagline"><span class="pill">邊上的數字 = 權重</span><span class="pill mint">綠色 = 本輪檢查的邊</span><span class="pill amber">黃色 = 本輪選出的頂點</span></div>
+          </div>
+          <div class="walk-side">
+            <div class="card tint-blue"><div class="kicker" id="stepLabel">初始化</div><h3 id="stepTitle" style="margin-top:6px">設定起點 A</h3><p id="stepDescription">dist[A] = 0，其餘頂點距離皆為 ∞。PQ = {A:0}。</p></div>
+            <div class="card"><div class="kicker">DISTANCE TABLE</div><div class="dist-grid" id="distGrid">
+              <div class="dist-cell current"><b>A</b><span>0</span></div><div class="dist-cell"><b>B</b><span>∞</span></div><div class="dist-cell"><b>C</b><span>∞</span></div><div class="dist-cell"><b>D</b><span>∞</span></div><div class="dist-cell"><b>E</b><span>∞</span></div><div class="dist-cell"><b>F</b><span>∞</span></div>
+            </div></div>
+            <div class="card"><div class="kicker">SETTLED</div><p id="settledList" style="margin-top:5px;font-weight:800;color:#087e70">尚無</p><div class="kicker" style="margin-top:12px">PRIORITY QUEUE</div><p id="pqList" style="margin-top:5px;font-family:ui-monospace,monospace;color:#34506f">A:0</p></div>
+            <div class="step-controls"><button id="stepPrev" disabled>← 上一輪</button><button id="stepNext" class="primary">下一輪 →</button><button id="stepReset">重設</button></div>
+          </div>
+        </div>
+        <div class="footer-source"><span>知識依據：Wiki 04 Dijkstra Algorithm（原始 A–F 範例）</span><span>R3</span></div>
+      </div>
+    </section>
+
+    <!-- 09 result and path -->
+    <section class="slide" data-title="還原最短路徑">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">08 / RESULT & PATH</div><h2>距離算完後，如何還原路徑？</h2></div><div class="slide-no">09 / 14</div></div>
+        <p class="lead">`dist` 告訴我們成本；`prev` 則記錄路徑怎麼走。沿著前驅從終點往回追，再反轉順序即可。</p>
+        <div class="two-col" style="flex:1;align-items:center">
+          <div class="card">
+            <div class="kicker">FINAL DISTANCES FROM A</div>
+            <table style="margin-top:10px"><thead><tr><th>頂點</th><th>dist</th><th>prev</th></tr></thead><tbody>
+              <tr><td>A</td><td>0</td><td>—</td></tr><tr><td>B</td><td>3</td><td>C</td></tr><tr><td>C</td><td>2</td><td>A</td></tr><tr><td>D</td><td>8</td><td>B</td></tr><tr><td>E</td><td>10</td><td>D</td></tr><tr><td>F</td><td>13</td><td>E</td></tr>
+            </tbody></table>
+          </div>
+          <div>
+            <div class="kicker">TRACE BACK FROM F</div>
+            <div class="tagline" style="margin:12px 0;align-items:center;gap:6px;flex-wrap:wrap"><span class="pill amber">F</span><span>←</span><span class="pill">E</span><span>←</span><span class="pill">D</span><span>←</span><span class="pill">B</span><span>←</span><span class="pill">C</span><span>←</span><span class="pill mint">A</span></div>
+            <div class="formula">A → C → B → D → E → F</div>
+            <div class="card tint-mint" style="margin-top:14px"><div class="kicker">SHORTEST DISTANCE</div><div class="big">13</div><p>2 + 1 + 5 + 2 + 3 = 13</p></div>
+          </div>
+        </div>
+        <div class="callout">所有可達頂點的 `prev` 邊可以形成一棵以起點為根的 Shortest-Path Tree（最短路徑樹）。</div>
+        <div class="footer-source"><span>知識依據：Wiki 04 Dijkstra Algorithm</span><span>R3、R6</span></div>
+      </div>
+    </section>
+
+    <!-- 10 Relaxation -->
+    <section class="slide" data-title="Edge Relaxation">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">09 / EDGE RELAXATION</div><h2>Edge Relaxation：發現更短，就更新</h2></div><div class="slide-no">10 / 14</div></div>
+        <p class="lead">鬆弛（Relaxation）就是檢查：經過某條邊的新路徑，是否比目前記錄的路徑更便宜？</p>
+        <div class="grid two" style="align-items:center;flex:1">
+          <div class="card">
+            <div class="kicker">CANDIDATE DISTANCE</div>
+            <div class="formula" style="margin:12px 0">candidate = dist[u] + w(u,v)</div>
+            <div class="kicker" style="margin-top:8px">ONLY UPDATE WHEN</div>
+            <div class="formula light" style="margin:12px 0">candidate &lt; dist[v]</div>
+            <ul class="clean" style="margin-top:5px"><li>更新 `dist[v] = candidate`</li><li>更新 `prev[v] = u`</li><li>Dijkstra 中同步更新 PQ 優先權</li></ul>
+          </div>
+          <div class="card tint-blue">
+            <div class="kicker">EXAMPLE</div><h3 style="margin-top:7px">找到更便宜的到 B 路徑</h3>
+            <div class="tagline" style="align-items:center;margin:14px 0"><span class="pill">A</span><span>—7→</span><span class="pill amber">B</span></div>
+            <p>目前 `dist[B] = 7`</p>
+            <div class="tagline" style="align-items:center;margin:12px 0"><span class="pill">A</span><span>—2→</span><span class="pill mint">C</span><span>—3→</span><span class="pill amber">B</span></div>
+            <p>新候選距離：2 + 3 = 5</p>
+            <div class="formula light" style="margin-top:8px">5 &lt; 7 → 更新為 5</div>
+            <p style="margin-top:8px">因此 `prev[B] = C`。</p>
+          </div>
+        </div>
+        <div class="callout">Dijkstra 與 Bellman-Ford 都使用 Relaxation；差異在於它們安排鬆弛操作的方式：Dijkstra 依距離選頂點，Bellman-Ford 反覆掃描所有邊。</div>
+        <div class="footer-source"><span>知識依據：Wiki 05 Edge Relaxation</span><span>R3、R5</span></div>
+      </div>
+    </section>
+
+    <!-- 11 PQ and complexity -->
+    <section class="slide" data-title="Priority Queue 與效率">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">10 / PRIORITY QUEUE & COMPLEXITY</div><h2>為什麼 Dijkstra 需要 Min-Priority Queue？</h2></div><div class="slide-no">11 / 14</div></div>
+        <p class="lead">每輪都要快速找出 Frontier 中距離最小的頂點；Min Heap 能讓這個選擇有效率。</p>
+        <div class="two-col">
+          <div class="card">
+            <h3>Indexed Min Heap 操作</h3>
+            <div style="display:flex;justify-content:center;margin:8px 0">
+              <svg viewBox="0 0 300 190" style="width:100%;max-width:320px" role="img" aria-label="Min Heap 樹狀結構，根節點數值最小">
+                <g stroke="#9cb0c8" stroke-width="2.5"><path d="M150 34L80 102M150 34L220 102M80 102L42 166M80 102L118 166M220 102L190 166M220 102L258 166"/></g>
+                <g fill="#e7f8f4" stroke="#18a48f" stroke-width="2"><circle cx="150" cy="34" r="23"/><circle cx="80" cy="102" r="21"/><circle cx="220" cy="102" r="21"/><circle cx="42" cy="166" r="19"/><circle cx="118" cy="166" r="19"/><circle cx="190" cy="166" r="19"/><circle cx="258" cy="166" r="19"/></g>
+                <g fill="#1b4963" font-size="15" font-weight="900" text-anchor="middle" dominant-baseline="central"><text x="150" y="34">2</text><text x="80" y="102">5</text><text x="220" y="102">4</text><text x="42" y="166">9</text><text x="118" y="166">7</text><text x="190" y="166">8</text><text x="258" y="166">6</text></g>
+              </svg>
+            </div>
+            <table class="table-compact"><tbody><tr><td>Peek-Min</td><td><strong>O(1)</strong></td></tr><tr><td>Insert</td><td><strong>O(log V)</strong></td></tr><tr><td>Extract-Min</td><td><strong>O(log V)</strong></td></tr><tr><td>Decrease-Key</td><td><strong>O(log V)</strong></td></tr></tbody></table>
+            <p class="small" style="margin-top:8px">Decrease-Key 假設額外維護「頂點 → Heap 索引」對應；一般未索引的 Binary Heap 不一定能直接定位指定頂點。</p>
+          </div>
+            <div class="card tint-blue">
+            <h3>三種演算法的典型時間成本</h3>
+            <div style="display:grid;gap:14px;margin-top:15px">
+              <div><div style="display:flex;justify-content:space-between;gap:8px"><strong>BFS</strong><span class="formula light">O(V + E)</span></div><p class="small" style="margin-top:5px">鄰接串列 + FIFO Queue</p></div>
+              <div><div style="display:flex;justify-content:space-between;gap:8px"><strong>Dijkstra</strong><span class="formula light">O((V+E) log V)</span></div><p class="small" style="margin-top:5px">鄰接串列 + Indexed Binary Min Heap</p></div>
+              <div><div style="display:flex;justify-content:space-between;gap:8px"><strong>Bellman-Ford</strong><span class="formula light">O(VE)</span></div><p class="small" style="margin-top:5px">最多 V−1 輪掃描所有邊，再做負環檢查</p></div>
+            </div>
+            <div class="complexity-note"><strong>複雜度分析前提：</strong>Dijkstra 使用鄰接串列與支援 decrease-key 的 Binary Min Heap。輔助空間 O(V) 不包含圖本身的儲存空間；更換圖表示法或佇列實作，複雜度也會改變。</div>
+          </div>
+        </div>
+        <div class="footer-source"><span>知識依據：Wiki 06 Priority Queue、07 Time Complexity</span><span>R1–R5</span></div>
+      </div>
+    </section>
+
+    <!-- 12 BFS and BF -->
+    <section class="slide" data-title="BFS 與 Bellman-Ford">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">11 / ALTERNATIVES</div><h2>另外兩種方法：BFS 與 Bellman-Ford</h2></div><div class="slide-no">12 / 14</div></div>
+        <div class="grid two" style="flex:1">
+          <div class="card tint-blue">
+            <span class="pill">BFS · 廣度優先搜尋</span><h3 style="margin-top:10px">一層一層向外找</h3>
+            <ul class="clean" style="margin-top:10px"><li>使用 FIFO Queue。</li><li>先找距離 1 條邊的頂點，再找 2 條邊、3 條邊。</li><li>適合非加權圖，或每條邊成本相同且非負。</li><li>不能保證不同權重下的最低總成本路徑。</li></ul>
+            <div class="formula light" style="margin-top:15px">O(V + E)</div>
+          </div>
+          <div class="card tint-amber">
+            <span class="pill amber">Bellman-Ford · 貝爾曼－福特</span><h3 style="margin-top:10px">反覆鬆弛所有邊</h3>
+            <ul class="clean" style="margin-top:10px"><li>最多執行 V−1 輪，每輪掃描所有邊。</li><li>可處理負權重邊。</li><li>額外掃描一次，檢查來源點可達的負權重環。</li><li>受可達負環影響的頂點沒有有限最短距離。</li></ul>
+            <div class="formula light" style="margin-top:15px">O(VE)</div>
+          </div>
+        </div>
+        <div class="card"><h3>快速記憶</h3><div class="tagline" style="margin-top:10px"><span class="pill">BFS：邊數最少</span><span class="pill mint">Dijkstra：非負權重、總成本最低</span><span class="pill amber">Bellman-Ford：允許負權重並偵測負環</span></div></div>
+        <div class="footer-source"><span>知識依據：Wiki 08 BFS、09 Bellman-Ford、10 Algorithm Comparison</span><span>R2、R3、R5</span></div>
+      </div>
+    </section>
+
+    <!-- 13 quiz -->
+    <section class="slide" data-title="重點整理與小測驗">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">12 / CHECK YOUR UNDERSTANDING</div><h2>重點整理：你會選對演算法了嗎？</h2></div><div class="slide-no">13 / 14</div></div>
+        <div class="two-col" style="flex:1;align-items:stretch">
+          <div class="card">
+            <h3>四個重點先帶走</h3>
+            <div class="step-list" style="margin-top:14px">
+              <div class="step"><span class="num">1</span><p>最短路徑的「短」取決於成本定義：可能是邊數，也可能是權重總和。</p></div>
+              <div class="step"><span class="num">2</span><p>Dijkstra 要求所有邊權重非負；每輪確定 Frontier 中距離最小的頂點。</p></div>
+              <div class="step"><span class="num">3</span><p>Relaxation 用候選距離改善 `dist`，並用 `prev` 記錄路徑。</p></div>
+              <div class="step"><span class="num">4</span><p>Priority Queue 協助選最小距離；BFS 與 Bellman-Ford 有不同適用條件。</p></div>
+            </div>
+          </div>
+          <div class="card tint-blue">
+            <span class="pill">QUICK QUIZ</span><h3 style="margin-top:10px">圖中可能存在負權重邊，而且你需要偵測來源點可達的負環，應優先考慮哪個演算法？</h3>
+            <div class="quiz-options" style="margin-top:14px">
+              <button type="button" data-quiz="wrong">A. BFS</button>
+              <button type="button" data-quiz="wrong">B. Dijkstra</button>
+              <button type="button" data-quiz="correct">C. Bellman-Ford</button>
+            </div>
+            <div id="quizFeedback" class="quiz-feedback" aria-live="polite" style="margin-top:10px">選擇一個答案，看看你的理解是否正確。</div>
+            <button type="button" id="quizReset" style="margin-top:8px;border:0;background:transparent;color:#477eb9;font-weight:800;font-size:11px;padding:5px 0">重新作答 ↻</button>
+          </div>
+        </div>
+        <div class="footer-source"><span>知識依據：Wiki 03、04、05、06、10</span><span>R2–R5</span></div>
+      </div>
+    </section>
+
+    <!-- 14 Sources -->
+    <section class="slide" data-title="Wiki 與參考資料">
+      <div class="slide-content">
+        <div class="title-row"><div><div class="eyebrow">13 / SOURCES & WIKI MAP</div><h2>知識從哪裡來？</h2></div><div class="slide-no">14 / 14</div></div>
+        <p class="lead">本簡報根據已完成的 10 頁 LLM Wiki 整理；每個主題都保留對應的 Wiki 頁面與原始來源。</p>
+        <div class="source-list" style="flex:1">
+          <div class="source-item"><div class="source-id">R1</div><div><b>Cornell CS 2110 — Graphs</b><span>Graph、Vertex、Edge、圖表示法</span><br><a href="https://www.cs.cornell.edu/courses/cs2110/2026fa/lectures/lec21/" target="_blank" rel="noopener">開啟原始教材 ↗</a></div></div>
+          <div class="source-item"><div class="source-id">R2</div><div><b>NetworkX — Shortest Paths</b><span>最短路徑定義、問題類型、演算法選擇</span><br><a href="https://networkx.org/documentation/stable/reference/algorithms/shortest_paths.html" target="_blank" rel="noopener">開啟官方文件 ↗</a></div></div>
+          <div class="source-item"><div class="source-id">R3</div><div><b>Cornell CS 2110 — Shortest Paths</b><span>Dijkstra、Greedy、Frontier、Settled</span><br><a href="https://courses.cis.cornell.edu/courses/cs2110/2026fa/lectures/lec23/" target="_blank" rel="noopener">開啟原始教材 ↗</a></div></div>
+          <div class="source-item"><div class="source-id">R4</div><div><b>Cornell CS 2110 — Heaps & Priority Queues</b><span>Binary Heap、Min Heap、Heap operations</span><br><a href="https://www.cs.cornell.edu/courses/cs2110/2026fa/lectures/lec18/" target="_blank" rel="noopener">開啟原始教材 ↗</a></div></div>
+          <div class="source-item"><div class="source-id">R5</div><div><b>MIT 6.006 — Bellman-Ford</b><span>負權重、反覆鬆弛、負環檢查</span><br><a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/" target="_blank" rel="noopener">開啟課程教材 ↗</a></div></div>
+          <div class="source-item"><div class="source-id">R6</div><div><b>Cornell CS 312 — Finding Shortest Paths</b><span>Shortest-Path Tree、Predecessor Property</span><br><a href="https://www.cs.cornell.edu/courses/cs312/2007sp/lectures/lec26.html" target="_blank" rel="noopener">開啟原始教材 ↗</a></div></div>
+        </div>
+        <div class="callout">回到 Wiki：先閱讀 Overview，再依序學習 Graph → Shortest Path → Dijkstra → Relaxation → Priority Queue → Complexity，最後比較 BFS 與 Bellman-Ford。</div>
+        <div class="footer-source"><span>知識庫：Graph-Shortest-Path-Wiki · 10 頁 · R1–R6</span><span>END OF DECK</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="controls" aria-label="簡報操作">
+    <button type="button" id="prevBtn" disabled><span>←</span><span class="btnlabel">上一頁</span></button>
+    <div class="progress" aria-label="簡報進度"><span id="progressFill"></span></div>
+    <div class="counter" id="counter" aria-live="polite">01 / 14</div>
+    <span class="key-hint">← → 切換</span>
+    <button type="button" id="fullscreenBtn" title="全螢幕"><span>⛶</span><span class="btnlabel">全螢幕</span></button>
+    <button type="button" id="nextBtn"><span class="btnlabel">下一頁</span><span>→</span></button>
+  </footer>
+</div>
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let current = 0;
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const counter = document.getElementById('counter');
+  const topCounter = document.getElementById('topCounter');
+  const progressFill = document.getElementById('progressFill');
+  const deck = document.getElementById('deck');
+  const app = document.querySelector('.app');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  function showSlide(index){
+    current = Math.max(0, Math.min(slides.length - 1, index));
+    slides.forEach((slide,i)=>{
+      const active = i === current;
+      slide.classList.toggle('active',active);
+      slide.setAttribute('aria-hidden', active ? 'false' : 'true');
+      if(active) slide.scrollTop = 0;
+    });
+    const n = String(current+1).padStart(2,'0');
+    const total = String(slides.length).padStart(2,'0');
+    counter.textContent = `${n} / ${total}`;
+    topCounter.textContent = `${n} / ${total}`;
+    progressFill.style.width = `${((current+1)/slides.length)*100}%`;
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === slides.length-1;
+    document.title = `${slides[current].dataset.title || '教學簡報'}｜從零理解 Dijkstra`;
+  }
+  prevBtn.addEventListener('click',()=>showSlide(current-1));
+  nextBtn.addEventListener('click',()=>showSlide(current+1));
+  document.addEventListener('keydown',(e)=>{
+    if(e.altKey||e.ctrlKey||e.metaKey) return;
+    const tag = (e.target.tagName||'').toLowerCase();
+    const editing = e.target.isContentEditable || ['input','textarea','select'].includes(tag);
+    if(editing) return;
+    if(e.key===' ' && tag==='button') return;
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();showSlide(current+1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();showSlide(current-1);}
+    else if(e.key==='Home'){e.preventDefault();showSlide(0);}
+    else if(e.key==='End'){e.preventDefault();showSlide(slides.length-1);}
+  });
+  function syncFullscreenButton(){
+    const active = document.fullscreenElement === app;
+    fullscreenBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    fullscreenBtn.title = active ? '退出全螢幕' : '全螢幕';
+    const label = fullscreenBtn.querySelector('.btnlabel');
+    if(label) label.textContent = active ? '退出全螢幕' : '全螢幕';
+    const icon = fullscreenBtn.querySelector('span:first-child');
+    if(icon) icon.textContent = active ? '⤢' : '⛶';
+  }
+  fullscreenBtn.addEventListener('click',async()=>{
+    try{
+      if(document.fullscreenElement){await document.exitFullscreen();}
+      else if(app.requestFullscreen){await app.requestFullscreen();}
+      else{throw new Error('Fullscreen API is unavailable');}
+    }catch(err){ alert('此瀏覽器目前無法啟用全螢幕，仍可正常瀏覽簡報。'); }
+  });
+  document.addEventListener('fullscreenchange',syncFullscreenButton);
+  syncFullscreenButton();
+
+  // Reproducible Dijkstra walkthrough, using the exact A-F graph from Wiki page 04.
+  const steps = [
+    {label:'初始化',title:'設定起點 A',desc:'dist[A] = 0，其餘頂點距離皆為 ∞。PQ = {A:0}。',dist:{A:'0',B:'∞',C:'∞',D:'∞',E:'∞',F:'∞'},settled:[],pq:'A:0',active:[],current:null},
+    {label:'第 1 輪',title:'確定 A（距離 0）',desc:'從 A 出發：更新 B = 4、C = 2。下一個應選距離最小的 C。',dist:{A:'0',B:'4',C:'2',D:'∞',E:'∞',F:'∞'},settled:['A'],pq:'C:2, B:4',active:['AB','AC'],current:'A'},
+    {label:'第 2 輪',title:'確定 C（距離 2）',desc:'經 C 到 B 的候選距離是 2+1=3，比原本 4 更小；同時發現 D=10、E=12。',dist:{A:'0',B:'3',C:'2',D:'10',E:'12',F:'∞'},settled:['A','C'],pq:'B:3, D:10, E:12',active:['CB','CD','CE'],current:'C'},
+    {label:'第 3 輪',title:'確定 B（距離 3）',desc:'經 B 到 D 的候選距離是 3+5=8，比原本 10 更小，因此 D 更新為 8。',dist:{A:'0',B:'3',C:'2',D:'8',E:'12',F:'∞'},settled:['A','C','B'],pq:'D:8, E:12',active:['BD'],current:'B'},
+    {label:'第 4 輪',title:'確定 D（距離 8）',desc:'經 D 到 E 的候選距離是 8+2=10，比 12 更小；經 D 到 F 得到 14。',dist:{A:'0',B:'3',C:'2',D:'8',E:'10',F:'14'},settled:['A','C','B','D'],pq:'E:10, F:14',active:['DE','DF'],current:'D'},
+    {label:'第 5 輪',title:'確定 E（距離 10）',desc:'經 E 到 F 的候選距離是 10+3=13，比原本 14 更小，因此 F 更新為 13。',dist:{A:'0',B:'3',C:'2',D:'8',E:'10',F:'13'},settled:['A','C','B','D','E'],pq:'F:13',active:['EF'],current:'E'},
+    {label:'第 6 輪',title:'確定 F（距離 13）',desc:'F 被取出並確定。PQ 已空，演算法完成；A 到 F 的最短距離為 13。',dist:{A:'0',B:'3',C:'2',D:'8',E:'10',F:'13'},settled:['A','C','B','D','E','F'],pq:'—（空）',active:[],current:'F'}
+  ];
+  let stepIndex = 0;
+  const nodes = ['A','B','C','D','E','F'];
+  function renderStep(){
+    const s = steps[stepIndex];
+    document.getElementById('stepLabel').textContent = s.label;
+    document.getElementById('stepTitle').textContent = s.title;
+    document.getElementById('stepDescription').textContent = s.desc;
+    document.getElementById('settledList').textContent = s.settled.length ? s.settled.join(' → ') : '尚無';
+    document.getElementById('pqList').textContent = s.pq;
+    const grid = document.getElementById('distGrid');
+    grid.innerHTML = nodes.map(v=>{
+      let cls='dist-cell';
+      if(s.settled.includes(v)) cls+=' settled';
+      else if(s.current===v) cls+=' current';
+      return `<div class="${cls}"><b>${v}</b><span>${s.dist[v]}</span></div>`;
+    }).join('');
+    nodes.forEach(v=>{
+      const circle = document.querySelector(`#n-${v} .graph-node`);
+      circle.classList.remove('settled','current','pathnode');
+      if(s.settled.includes(v)) circle.classList.add('settled');
+      if(s.current===v) circle.classList.add('current');
+    });
+    ['AB','AC','CB','BD','CD','CE','DE','DF','EF'].forEach(e=>{
+      const line=document.getElementById(`e-${e}`);
+      line.classList.toggle('active',s.active.includes(e));
+    });
+    document.getElementById('stepPrev').disabled = stepIndex===0;
+    document.getElementById('stepNext').disabled = stepIndex===steps.length-1;
+    document.getElementById('stepNext').textContent = stepIndex===steps.length-1 ? '已完成 ✓' : '下一輪 →';
+  }
+  document.getElementById('stepPrev').addEventListener('click',()=>{stepIndex=Math.max(0,stepIndex-1);renderStep();});
+  document.getElementById('stepNext').addEventListener('click',()=>{stepIndex=Math.min(steps.length-1,stepIndex+1);renderStep();});
+  document.getElementById('stepReset').addEventListener('click',()=>{stepIndex=0;renderStep();});
+  renderStep();
+
+  // One-question knowledge check.
+  const quizButtons = Array.from(document.querySelectorAll('[data-quiz]'));
+  const feedback = document.getElementById('quizFeedback');
+  quizButtons.forEach(btn=>btn.addEventListener('click',()=>{
+    quizButtons.forEach(b=>{b.classList.remove('correct','wrong');b.disabled=false;});
+    const correct = btn.dataset.quiz==='correct';
+    btn.classList.add(correct?'correct':'wrong');
+    feedback.textContent = correct
+      ? '答對了！Bellman-Ford 可以處理負權重邊，並透過額外掃描偵測來源點可達的負權重環。'
+      : '再想想：Dijkstra 不允許負權重邊；BFS 的目標是最少邊數。能處理負權重並檢查負環的是 Bellman-Ford。';
+  }));
+  document.getElementById('quizReset').addEventListener('click',()=>{
+    quizButtons.forEach(b=>{b.classList.remove('correct','wrong');b.disabled=false;});
+    feedback.textContent='選擇一個答案，看看你的理解是否正確。';
+  });
+  showSlide(0);
+})();
+</script>
+</body>
+</html>
